@@ -243,7 +243,7 @@ class BlueBird:
         if lang is not None:
             encoded_query += f'&l={lang}'
 
-        print(f'[Test URL] https://twitter.com/search?f=tweets&vertical=default&q={encoded_query}')
+        print(f'[Test URL] https://twitter.com/search?f=live&vertical=default&q={encoded_query}')
         return encoded_query
 
     def _get_tweets_web(self, url, deep, sleep_time, query_type, min_tweets):
@@ -272,7 +272,7 @@ class BlueBird:
                     done = True
                 except Exception:
                     continue
-
+            print(content)
             items_html = content['items_html']
             try:
                 root = document_fromstring(items_html)
@@ -334,7 +334,8 @@ class BlueBird:
 
     def _search_web(self, query, deep, count, sleep_time, min_tweets):
         encoded_query = BlueBird._encode_query(query)
-        base_url = f'https://twitter.com/i/search/timeline?f=tweets&vertical=news&q={encoded_query}&src=typd'
+        base_url = f'https://twitter.com/search?f=live&vertical=news&q={encoded_query}&src=typd'
+        print(base_url)
         yield from self._get_tweets_web(base_url, deep, sleep_time, 'search', min_tweets)
 
     def _user_timeline_web(self, username, deep, count, include_replies, sleep_time, min_tweets):
@@ -394,7 +395,8 @@ class BlueBird:
             'q': encoded_query,
             'count': count,
             'sorted_by_time': 'true',
-            'tweet_mode': 'extended'
+            'tweet_mode': 'extended',
+            'f': 'live'
         }
 
         url = BlueBird._update_url_with_params(base_url, params)
@@ -512,7 +514,7 @@ class BlueBird:
 
         yield from self._get_tweets_1_1(url, deep, sleep_time, min_tweets)
 
-    def search(self, query, deep=False, count=100, sleep_time=0, min_tweets=0, mode=API_2):
+    def search(self, query, deep=False, count=600, sleep_time=0, min_tweets=40, mode=API_1_1):
         return getattr(self, f'_search_{mode}')(query, deep, count, sleep_time, min_tweets)
 
     def user_timeline(self,
@@ -526,11 +528,11 @@ class BlueBird:
         return getattr(self, f'_user_timeline_{mode}')(username, deep, count, include_replies,
                                                        sleep_time, min_tweets)
 
-    def stream(self, query, sleep_time=0, mode=API_2):
+    def stream(self, query, sleep_time=0, mode=API_1_1):
         known_tweets = CircularOrderedSet(50)
         while True:
             try:
-                for tweet in self.search(query, mode=mode):
+                for tweet in self.search(query, deep=True, mode=mode):
                     if tweet['id'] not in known_tweets:
                         known_tweets.add(tweet['id'])
                         yield tweet
